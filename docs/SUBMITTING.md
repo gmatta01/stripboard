@@ -1,64 +1,44 @@
 # Submitting StripBoard to WordPress.org
 
-Prepared artifacts for directory submission.
+## Source of truth
 
-## Before you submit
+Plugin code lives in version folders under the git repo:
 
-1. Confirm the plugin slug `stripboard` is available: search https://wordpress.org/plugins/
-2. Create / log in to a WordPress.org account (contributor slug should match `readme.txt` → `Contributors: gmatta01` or update that field)
-3. Whitelist `plugins@wordpress.org` in email
+`/Users/gm/Downloads/Project/stripboard/<version>/`
 
-## Zip for review
+Directory assets live in:
 
-Built package:
+`wordpress-org/` (banners, icons, screenshots) → copy into SVN `assets/` after approval.
 
-`dist/stripboard-1.0.0.zip`
+## Build a review / release zip
 
-Excluded from the zip:
+```bash
+cd /Users/gm/Downloads/Project/stripboard
+./scripts/zip-version.sh 1.0.4
+```
 
-- `.git/`
-- `.pi-subagents/`
-- `dist/`
-- `.wordpress-org/` (upload these to SVN `assets/` after approval)
-- internal `doc/*.html` analysis
+Output: `dist/stripboard-1.0.4.zip`
 
-Included:
+Excluded automatically: `.git`, `.gitignore`, `.DS_Store`, `Thumbs.db`, env/editor junk.
 
-- Plugin PHP/JS/CSS, `readme.txt`, `license.txt`, `README.md`, `ROADMAP.md`
-- `examples/extend-plugin.php`
-- `languages/stripboard.pot`
-- `doc/features.json`
+Included: only files inside the version folder (PHP/JS/CSS, `readme.txt`, `license.txt`, languages, etc.).
 
-Directory graphics live in `.wordpress-org/` (banners, icons, screenshots) for SVN `assets/` after approval.
+Optional: copy the zip into ops history:
 
-## Submit
-
-1. Open https://wordpress.org/plugins/developers/add/
-2. Upload `dist/stripboard-1.0.0.zip`
-3. Add a short overview (lean feature governor; 132 toggles; kill switch; no remote calls)
-4. Wait for plugin review (often 1–10 days)
+`../Disable Kit/submissions/stripboard-1.0.4.zip`
 
 ## After approval (SVN)
 
 ```bash
 svn co https://plugins.svn.wordpress.org/stripboard stripboard-svn
-# Copy plugin files into trunk/
-# Copy .wordpress-org/* into svn assets/ (sibling of trunk)
+# Copy 1.0.4/* → trunk/
+# Copy wordpress-org/* → assets/
 svn add trunk/* assets/*
-svn ci -m "Initial release 1.0.0"
-# Tag
-svn cp trunk tags/1.0.0
-svn ci -m "Tag 1.0.0"
+svn ci -m "Release 1.0.4"
+svn cp trunk tags/1.0.4
+svn ci -m "Tag 1.0.4"
 ```
 
-Validate readme anytime: https://wordpress.org/plugins/developers/readme-validator/
+Ops mirror of the SVN package: `../Disable Kit/svn-ready/`
 
-## Smoke test checklist
-
-- [ ] Activate on clean WP 6.8+
-- [ ] Settings → StripBoard loads; save toggles
-- [ ] Disable emoji / generator; confirm frontend change
-- [ ] Disable cron; confirm admin warning
-- [ ] With WooCommerce active, Woo tab appears
-- [ ] `define('STRIPBOARD_BYPASS', true);` restores defaults behavior
-- [ ] Custom feature via `examples/extend-plugin.php` patterns works
+Readme validator: https://wordpress.org/plugins/developers/readme-validator/

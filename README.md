@@ -2,95 +2,54 @@
 
 Simply disable unwanted WordPress features from one settings board.
 
-**StripBoard** lets you turn off unused core WordPress (and WooCommerce) features at the load level—hooks, not menu hiding. Every toggle includes plain-English guidance, a risk label, and a scope tag.
+## Source layout
 
-No bloat. No page builders. No subscriptions.
+```
+stripboard/                 ← git repo (source of truth)
+├── 1.0.4/                  ← current plugin code (edit here)
+├── 1.0.3/                  ← archived submitted release
+├── wordpress-org/          ← directory banners / icons / screenshots
+├── docs/                   ← project docs
+├── doc/                    ← feature catalog data
+├── examples/               ← developer samples
+├── scripts/zip-version.sh  ← build a clean zip for a version
+└── dist/                   ← generated zips (gitignored)
+```
 
----
+**Active version:** `1.0.4/`
 
-## Installation
+When you ship a new release: copy/bump into a new folder (e.g. `1.0.5/`), update that folder’s version strings, then zip it.
+
+## Build a zip
+
+```bash
+./scripts/zip-version.sh 1.0.4
+# → dist/stripboard-1.0.4.zip
+```
+
+The zip excludes `.DS_Store`, `.gitignore`, `.git`, and other junk. Contents are packed as `stripboard/…` for WordPress installs.
+
+## Installation (from zip)
 
 1. Upload the `stripboard` folder to `/wp-content/plugins/`
-2. Activate the plugin through the Plugins screen
-3. Open **Settings → StripBoard** to configure features
+2. Activate the plugin
+3. Open **Settings → StripBoard**
 
 ## Safety
 
-### Kill switch
-
-If a toggle locks you out of admin, add this to `wp-config.php`:
+Kill switch in `wp-config.php`:
 
 ```php
 define( 'STRIPBOARD_BYPASS', true );
 ```
 
-### Other safeguards
+## Docs
 
-- Confirmation dialogs on critical disables
-- Risk labels: **high** / **medium** / **low**
-- Scope tags: **admin** / **frontend** / **both**
-- Parent → child cascade with locked children when a parent is off
-
----
-
-## Feature catalog
-
-The full machine-readable list lives in [`doc/features.json`](doc/features.json) (129 features).
-
-Semantics: setting **`true` = keep WordPress behavior**; **`false` = disable** at runtime.
-
----
-
-## Developer API
-
-See [`examples/extend-plugin.php`](examples/extend-plugin.php) for copy-paste patterns.
-
-### Helpers
-
-```php
-stripboard_is_feature_enabled( 'comments' ); // true|false|null
-Stripboard::is_enabled( 'rest_api' );        // true|false|null
-```
-
-### Filters
-
-| Hook | Purpose |
-|------|---------|
-| `stripboard_features` | Add/modify the feature registry |
-| `stripboard_categories` | Add/modify admin category tabs |
-| `stripboard_validate_setting` | Filter a value before save |
-
-### Actions
-
-| Hook | Purpose |
-|------|---------|
-| `stripboard_disable_{$feature_key}` | Run when a feature is being disabled |
-| `stripboard_feature_toggled` | After save when a value changes |
-
-### Settings storage
-
-Option: `stripboard_settings`. Legacy `disable_kit_settings` / `wp_strip_settings` migrate automatically.
-
----
-
-## Requirements
-
-- WordPress 5.9+
-- PHP 7.4+
-- `manage_options` capability
-
-## Changelog
-
-### 1.0.1
-
-- Rebrand to StripBoard (`stripboard`)
-- Removed update-check interference and `DISABLE_WP_CRON` define toggle
-- Contributors: gangesh
-
-### 1.0.0
-
-- Initial public release
+- [`docs/SUBMITTING.md`](docs/SUBMITTING.md) — WordPress.org packaging notes
+- [`docs/ROADMAP.md`](docs/ROADMAP.md)
+- [`examples/extend-plugin.php`](examples/extend-plugin.php)
+- [`doc/features.json`](doc/features.json)
 
 ## License
 
-GPL v2 or later — see [license.txt](license.txt)
+GPL v2 or later — see [`1.0.4/license.txt`](1.0.4/license.txt)

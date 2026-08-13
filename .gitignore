@@ -1,29 +1,25 @@
-# Ignore internal architecture analysis HTML (keep features.json)
-doc/*.html
-doc/*.md
-
-# Analysis / agent artifacts
-.pi-subagents/
-
-# WordPress standard ignores
-wp-config.php
-wp-content/uploads/
-wp-content/upgrade/
-wp-content/cache/
-
-# OS files
+# OS / editor
 .DS_Store
 Thumbs.db
-
-# Editor files
 *.swp
 *.swo
 *~
 
-# Environment
+# Env
 .env
 .env.local
 
-# Build artifacts
+# Build output (zips live in dist/, and optionally copied to ops submissions)
 dist/
 *.zip
+
+# Analysis / agent artifacts
+.pi-subagents/
+doc/*.html
+doc/*.md
+
+# WordPress noise if ever present
+wp-config.php
+wp-content/uploads/
+wp-content/upgrade/
+wp-content/cache/
