@@ -1,25 +1,9 @@
-# OS / editor
 .DS_Store
 Thumbs.db
 *.swp
 *.swo
 *~
-
-# Env
 .env
 .env.local
-
-# Build output (zips live in dist/, and optionally copied to ops submissions)
 dist/
 *.zip
-
-# Analysis / agent artifacts
-.pi-subagents/
-doc/*.html
-doc/*.md
-
-# WordPress noise if ever present
-wp-config.php
-wp-content/uploads/
-wp-content/upgrade/
-wp-content/cache/
