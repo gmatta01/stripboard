@@ -35,8 +35,6 @@ StripBoard stores settings in the WordPress options table (`stripboard_settings`
 * `stripboard_validate_setting` — filter values before save
 * `stripboard_is_feature_enabled( $key )` — public helper
 
-See the GitHub README for extension examples.
-
 == Installation ==
 
 1. Upload the `stripboard` folder to the `/wp-content/plugins/` directory, or install from Plugins → Add New.
