@@ -69,48 +69,76 @@ install_wp() {
   fi
 }
 
-install_test_suite() {
-  if [ ! -d "$WP_TESTS_DIR" ]; then
-    mkdir -p "$WP_TESTS_DIR"
-    
-    # Download WordPress test suite from wordpress-develop
-    echo "Downloading WordPress test suite..."
-    local test_suite_url="https://github.com/WordPress/wordpress-develop/archive/refs/heads/trunk.tar.gz"
-    curl -sL "$test_suite_url" -o /tmp/wp-develop.tar.gz
-    
-    local tmp_extract="/tmp/wp-develop-extract-$$"
-    rm -rf "$tmp_extract"
-    mkdir -p "$tmp_extract"
-    tar -xzf /tmp/wp-develop.tar.gz -C "$tmp_extract"
-    
-    # Find the tests/phpunit directory
-    local phpunit_src=$(find "$tmp_extract" -type d -name "phpunit" -path "*/tests/phpunit" | head -1)
-    
-    if [ -d "$phpunit_src" ]; then
-      echo "Copying test suite files from $phpunit_src..."
-      cp -r "$phpunit_src"/* "$WP_TESTS_DIR/"
-      
-      # Install PHPUnit Polyfills for WordPress test suite compatibility
-      echo "Installing PHPUnit Polyfills..."
-      cd "$WP_TESTS_DIR"
-      if [ ! -f "vendor/yoast/phpunit-polyfills/phpunitpolyfills.php" ]; then
-        # Download composer
-        if [ ! -f "composer.phar" ]; then
-          curl -sS https://getcomposer.org/installer | php -- --quiet
-        fi
-        # Install polyfills
-        php composer.phar require --dev yoast/phpunit-polyfills:^2.0 --no-interaction 2>&1 || echo "Composer install failed, trying alternative method"
-      fi
-    else
-      echo "Failed to find test suite source at $phpunit_src"
-      ls -la "$tmp_extract"
-      find "$tmp_extract" -type d -name "phpunit" | head -5
-      exit 1
-    fi
-    
-    rm -rf "$tmp_extract"
-    rm -f /tmp/wp-develop.tar.gz
+install_polyfills() {
+  echo "Installing PHPUnit Polyfills..."
+  cd "$WP_TESTS_DIR"
+  
+  # Check if polyfills are already installed
+  if [ -f "vendor/yoast/phpunit-polyfills/phpunitpolyfills.php" ]; then
+    echo "PHPUnit Polyfills already installed"
+    return 0
   fi
+  
+  # Download composer if not present
+  if [ ! -f "composer.phar" ]; then
+    echo "Downloading Composer..."
+    curl -sS https://getcomposer.org/installer | php -- --quiet
+  fi
+  
+  # Install polyfills
+  echo "Running composer install..."
+  php composer.phar require --dev yoast/phpunit-polyfills:^2.0 --no-interaction --no-scripts 2>&1 || true
+  
+  # Verify installation
+  if [ -f "vendor/yoast/phpunit-polyfills/phpunitpolyfills.php" ]; then
+    echo "PHPUnit Polyfills installed successfully"
+  else
+    echo "WARNING: PHPUnit Polyfills installation may have failed"
+    # Try alternative: install directly without composer.json
+    mkdir -p vendor/yoast/phpunit-polyfills
+    curl -sL "https://github.com/Yoast/PHPUnit-Polyfills/archive/refs/tags/2.0.1.tar.gz" -o /tmp/polyfills.tar.gz
+    tar -xzf /tmp/polyfills.tar.gz -C /tmp
+    cp -r /tmp/PHPUnit-Polyfills-2.0.1/* vendor/yoast/phpunit-polyfills/
+    rm -rf /tmp/PHPUnit-Polyfills-* /tmp/polyfills.tar.gz
+    echo "Polyfills installed via direct download"
+  fi
+}
+
+install_test_suite() {
+  # Always ensure polyfills are installed
+  if [ -d "$WP_TESTS_DIR" ]; then
+    install_polyfills
+    return 0
+  fi
+  
+  mkdir -p "$WP_TESTS_DIR"
+  
+  # Download WordPress test suite from wordpress-develop
+  echo "Downloading WordPress test suite..."
+  local test_suite_url="https://github.com/WordPress/wordpress-develop/archive/refs/heads/trunk.tar.gz"
+  curl -sL "$test_suite_url" -o /tmp/wp-develop.tar.gz
+  
+  local tmp_extract="/tmp/wp-develop-extract-$$"
+  rm -rf "$tmp_extract"
+  mkdir -p "$tmp_extract"
+  tar -xzf /tmp/wp-develop.tar.gz -C "$tmp_extract"
+  
+  # Find the tests/phpunit directory
+  local phpunit_src=$(find "$tmp_extract" -type d -name "phpunit" -path "*/tests/phpunit" | head -1)
+  
+  if [ -d "$phpunit_src" ]; then
+    echo "Copying test suite files from $phpunit_src..."
+    cp -r "$phpunit_src"/* "$WP_TESTS_DIR/"
+  else
+    echo "Failed to find test suite source"
+    exit 1
+  fi
+  
+  rm -rf "$tmp_extract"
+  rm -f /tmp/wp-develop.tar.gz
+  
+  # Install polyfills
+  install_polyfills
 
   # Set up test config
   cat > "$WP_TESTS_DIR/wp-tests-config.php" <<EOF
