@@ -49,6 +49,9 @@ jobs:
           apt-get update && apt-get install -y \
             subversion unzip wget curl
 
+      - name: Install PHP extensions
+        run: docker-php-ext-install mysqli
+
       - name: Install Composer
         run: |
           curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
