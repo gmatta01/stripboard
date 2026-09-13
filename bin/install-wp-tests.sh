@@ -72,9 +72,34 @@ install_wp() {
 install_test_suite() {
   if [ ! -d "$WP_TESTS_DIR" ]; then
     mkdir -p "$WP_TESTS_DIR"
+    
+    # Download WordPress test suite from wordpress-develop
+    echo "Downloading WordPress test suite..."
+    local test_suite_url="https://github.com/WordPress/wordpress-develop/archive/refs/heads/trunk.tar.gz"
+    curl -sL "$test_suite_url" -o /tmp/wp-develop.tar.gz
+    
+    local tmp_extract="/tmp/wp-develop-extract-$$"
+    rm -rf "$tmp_extract"
+    mkdir -p "$tmp_extract"
+    tar -xzf /tmp/wp-develop.tar.gz -C "$tmp_extract"
+    
+    # Find the tests directory
+    local test_suite_src=$(find "$tmp_extract" -type d -name "wordpress-develop-*" | head -1)/tests
+    
+    if [ -d "$test_suite_src" ]; then
+      echo "Copying test suite files..."
+      cp -r "$test_suite_src"/* "$WP_TESTS_DIR/"
+    else
+      echo "Failed to find test suite source"
+      exit 1
+    fi
+    
+    rm -rf "$tmp_extract"
+    rm -f /tmp/wp-develop.tar.gz
+  fi
 
-    # Set up test config
-    cat > "$WP_TESTS_DIR/wp-tests-config.php" <<EOF
+  # Set up test config
+  cat > "$WP_TESTS_DIR/wp-tests-config.php" <<EOF
 <?php
 define( 'ABSPATH', '$WP_CORE_DIR/' );
 define( 'DB_NAME', '$DB_NAME' );
@@ -90,7 +115,6 @@ define( 'WP_TESTS_TITLE', 'Test Blog' );
 define( 'WP_PHP_BINARY', 'php' );
 define( 'WPLANG', '' );
 EOF
-  fi
 }
 
 if [ "$SKIP_DB_CREATE" != "true" ]; then
