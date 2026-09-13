@@ -1,0 +1,207 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+env:
+  PLUGIN_SLUG: stripboard
+  PLUGIN_VERSION: '0.3.0'
+  WP_ORG_ASSETS_DIR: assets
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════
+  # Stage 1: PHP Tests — Multiple PHP Versions + MySQL
+  # ═══════════════════════════════════════════════════════════════
+  php-tests:
+    name: PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.0', '8.1', '8.2', '8.3']
+        mysql: ['5.7', '8.0']
+        exclude:
+          - php: '7.4'
+            mysql: '8.0'
+
+    container:
+      image: php:${{ matrix.php }}
+
+    services:
+      mysql:
+        image: mysql:${{ matrix.mysql }}
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wordpress_tests
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          apt-get update && apt-get install -y \
+            subversion unzip wget curl git \
+            libxml2-dev libpng-dev libzip-dev libicu-dev
+
+      - name: Setup PHP extensions
+        run: |
+          docker-php-ext-install mysqli intl zip
+
+      - name: Install Composer
+        run: |
+          curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+      - name: Install WP test suite
+        run: |
+          bash bin/install-wp-tests.sh wordpress_tests root root 127.0.0.1 latest true
+
+      - name: Install PHPUnit (PHP 7.x)
+        if: matrix.php < '8.0'
+        run: composer global require "phpunit/phpunit:^9.0"
+
+      - name: Install PHPUnit (PHP 8.x)
+        if: matrix.php >= '8.0'
+        run: composer global require "phpunit/phpunit:^10.0"
+
+      - name: Run PHP syntax check
+        run: find . -type "f" -name "*.php" -not -path "./vendor/*" -not -path "./node_modules/*" | xargs -I {} php -l {}
+
+      - name: Run PHPUnit
+        run: |
+          export PATH="$HOME/.composer/vendor/bin:$PATH"
+          phpunit --configuration phpunit.xml.dist --coverage-clover=coverage.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: php-results-php${{ matrix.php }}-mysql${{ matrix.mysql }}
+          path: |
+            phpunit-testresults.xml
+            coverage.xml
+
+  # ═══════════════════════════════════════════════════════════════
+  # Stage 2: JS Tests — Node.js + Jest
+  # ═══════════════════════════════════════════════════════════════
+  js-tests:
+    name: JS Tests (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ['18', '20']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Jest tests
+        run: npm run test:ci
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: js-results-node${{ matrix.node }}
+          path: test-report.xml
+
+  # ═══════════════════════════════════════════════════════════════
+  # Stage 3: Build Plugin ZIP (only on main/master push)
+  # ═══════════════════════════════════════════════════════════════
+  build-zip:
+    name: Build Plugin ZIP
+    needs: [php-tests, js-tests]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create plugin ZIP
+        run: |
+          PLUGIN_NAME="stripboard"
+          ZIP_NAME="${PLUGIN_NAME}.zip"
+
+          # Create temp directory with plugin files
+          mkdir -p "/tmp/${PLUGIN_NAME}"
+          cp -r assets/ "/tmp/${PLUGIN_NAME}/"
+          cp -r includes/ "/tmp/${PLUGIN_NAME}/"
+          cp stripboard.php "/tmp/${PLUGIN_NAME}/"
+          cp readme.txt "/tmp/${PLUGIN_NAME}/"
+          cp license.txt "/tmp/${PLUGIN_NAME}/"
+          cp uninstall.php "/tmp/${PLUGIN_NAME}/"
+
+          # Create ZIP
+          cd /tmp
+          zip -r "${GITHUB_WORKSPACE}/${ZIP_NAME}" "${PLUGIN_NAME}/"
+
+      - name: Upload ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-zip
+          path: stripboard.zip
+          retention-days: 30
+
+  # ═══════════════════════════════════════════════════════════════
+  # Stage 4: Deploy to WordPress.org SVN (Manual Trigger Only)
+  # ═══════════════════════════════════════════════════════════════
+  deploy-wp-org:
+    name: Deploy to WordPress.org
+    needs: build-zip
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: Download plugin ZIP
+        uses: actions/download-artifact@v4
+        with:
+          name: plugin-zip
+
+      - name: Deploy to WordPress.org SVN
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+        run: |
+          # Checkout SVN repo
+          svn co "https://plugins.svn.wordpress.org/${PLUGIN_SLUG}/trunk" svn-trunk --username="${SVN_USERNAME}" --password="${SVN_PASSWORD}" --non-interactive --no-auth-cache
+
+          # Copy plugin files to trunk
+          cp -r assets/* svn-trunk/assets/
+          cp -r includes/* svn-trunk/includes/
+          cp stripboard.php svn-trunk/
+          cp readme.txt svn-trunk/
+          cp license.txt svn-trunk/
+          cp uninstall.php svn-trunk/
+
+          # Commit trunk
+          cd svn-trunk
+          svn add --force * --auto-props --parents --depth infinity
+          svn commit -m "Deploy version ${PLUGIN_VERSION} from GitHub Actions" --username="${SVN_USERNAME}" --password="${SVN_PASSWORD}" --non-interactive --no-auth-cache
+
+          echo "✅ Deployed version ${PLUGIN_VERSION} to WordPress.org SVN"
