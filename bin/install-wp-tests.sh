@@ -26,7 +26,7 @@ download() {
     local url="https://wordpress.org/wordpress-$1.tar.gz"
   fi
   curl -sL "$url" -o /tmp/wordpress.tar.gz
-  tar -xzf /tmp/wordpress.tar.gz -C /tmp
+  tar -xzf /tmp/wordpress.tar.gz -C /tmp --strip-components=1
 }
 
 install_db() {
@@ -36,10 +36,12 @@ install_db() {
 }
 
 install_wp() {
-  if [ ! -d "$WP_CORE_DIR" ]; then
+  if [ ! -f "$WP_CORE_DIR/wp-includes/version.php" ]; then
+    rm -rf "$WP_CORE_DIR"
     mkdir -p "$WP_CORE_DIR"
     download "$WP_VERSION"
     mv /tmp/wordpress/* "$WP_CORE_DIR/"
+    mv /tmp/wordpress/.* "$WP_CORE_DIR/" 2>/dev/null || true
   fi
 
   if [ ! -f "$WP_CORE_DIR/wp-includes/version.php" ]; then
