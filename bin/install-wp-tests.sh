@@ -93,9 +93,13 @@ install_test_suite() {
       # Install PHPUnit Polyfills for WordPress test suite compatibility
       echo "Installing PHPUnit Polyfills..."
       cd "$WP_TESTS_DIR"
-      if [ ! -f "vendor/autoload.php" ]; then
-        curl -sS https://getcomposer.org/installer | php -- --quiet
-        php composer.phar require --dev yoast/phpunit-polyfills:^2.0 --no-interaction --quiet 2>/dev/null || true
+      if [ ! -f "vendor/yoast/phpunit-polyfills/phpunitpolyfills.php" ]; then
+        # Download composer
+        if [ ! -f "composer.phar" ]; then
+          curl -sS https://getcomposer.org/installer | php -- --quiet
+        fi
+        # Install polyfills
+        php composer.phar require --dev yoast/phpunit-polyfills:^2.0 --no-interaction 2>&1 || echo "Composer install failed, trying alternative method"
       fi
     else
       echo "Failed to find test suite source at $phpunit_src"

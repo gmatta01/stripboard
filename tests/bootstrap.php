@@ -18,9 +18,13 @@ if ( ! file_exists( WP_TESTS_DIR . '/includes/functions.php' ) ) {
 
 // Set path to PHPUnit Polyfills for WordPress test suite compatibility
 if ( ! defined( 'WP_TESTS_PHPUNIT_POLYFILLS_PATH' ) ) {
-    $polyfills_path = WP_TESTS_DIR . '/vendor/yoast/phpunit-polyfills/phpunitpolyfills.php';
+    $vendor_autoload = WP_TESTS_DIR . '/vendor/autoload.php';
+    if ( file_exists( $vendor_autoload ) ) {
+        require_once $vendor_autoload;
+    }
+    $polyfills_path = WP_TESTS_DIR . '/vendor/yoast/phpunit-polyfills/';
     if ( file_exists( $polyfills_path ) ) {
-        define( 'WP_TESTS_PHPUNIT_POLYFILLS_PATH', WP_TESTS_DIR . '/vendor/yoast/phpunit-polyfills/' );
+        define( 'WP_TESTS_PHPUNIT_POLYFILLS_PATH', $polyfills_path );
     }
 }
 
