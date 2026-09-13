@@ -1,0 +1,20 @@
+{
+  "name": "gmatta01/stripboard",
+  "description": "WP Strip — Strip unwanted WordPress features for a leaner, faster, more secure site.",
+  "type": "wordpress-plugin",
+  "license": "GPL-2.0-or-later",
+  "require-dev": {
+    "yoast/phpunit-polyfills": "^1.0",
+    "wp-phpunit/wp-phpunit": "^6.3",
+    "phpunit/phpunit": "^9.0"
+  },
+  "scripts": {
+    "test": "phpunit",
+    "test-install": "bash bin/install-wp-tests.sh wordpress_test root root localhost latest"
+  },
+  "config": {
+    "allow-plugins": {
+      "yoast/phpunit-polyfills": true
+    }
+  }
+}

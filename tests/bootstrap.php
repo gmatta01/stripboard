@@ -5,43 +5,25 @@
  * @package StripBoard
  */
 
-// Determine correct test suite path.
-if ( ! defined( 'WP_TESTS_DIR' ) ) {
-    define( 'WP_TESTS_DIR', '/tmp/wordpress-tests-lib' );
-}
+// Load Composer autoloader
+require_once dirname( __DIR__ ) . '/vendor/autoload.php';
 
-// Warn if WordPress test files not found.
-if ( ! file_exists( WP_TESTS_DIR . '/includes/functions.php' ) ) {
-    echo "Could not find " . WP_TESTS_DIR . '/includes/functions.php' . "\n";
+// Load WordPress test environment
+// This is provided by wp-phpunit/wp-phpunit package
+$phpunit_dir = dirname( __DIR__ ) . '/vendor/wp-phpunit/wp-phpunit';
+
+if ( ! file_exists( $phpunit_dir . '/bootstrap.php' ) ) {
+    echo "Could not find wp-phpunit/wp-phpunit. Run: composer install\n";
     exit( 1 );
 }
 
-// Set path to PHPUnit Polyfills for WordPress test suite compatibility
-if ( ! defined( 'WP_TESTS_PHPUNIT_POLYFILLS_PATH' ) ) {
-    $vendor_autoload = WP_TESTS_DIR . '/vendor/autoload.php';
-    if ( file_exists( $vendor_autoload ) ) {
-        require_once $vendor_autoload;
-    }
-    $polyfills_path = WP_TESTS_DIR . '/vendor/yoast/phpunit-polyfills/';
-    if ( file_exists( $polyfills_path ) ) {
-        define( 'WP_TESTS_PHPUNIT_POLYFILLS_PATH', $polyfills_path );
-    }
-}
+// Set up the WordPress test environment
+require_once $phpunit_dir . '/bootstrap.php';
 
-// Load the WP testing environment.
-require_once WP_TESTS_DIR . '/includes/functions.php';
-
-/**
- * Load the plugin under test.
- *
- * Fires on the 'muplugins_loaded' action so WordPress core is fully booted.
- */
+// Load the plugin
 tests_add_filter(
     'muplugins_loaded',
     function () {
         require dirname( __DIR__ ) . '/stripboard.php';
     }
 );
-
-// Start up the WP testing environment.
-require WP_TESTS_DIR . '/includes/bootstrap.php';
