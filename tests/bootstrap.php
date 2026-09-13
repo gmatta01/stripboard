@@ -16,6 +16,14 @@ if ( ! file_exists( WP_TESTS_DIR . '/includes/functions.php' ) ) {
     exit( 1 );
 }
 
+// Set path to PHPUnit Polyfills for WordPress test suite compatibility
+if ( ! defined( 'WP_TESTS_PHPUNIT_POLYFILLS_PATH' ) ) {
+    $polyfills_path = WP_TESTS_DIR . '/vendor/yoast/phpunit-polyfills/phpunitpolyfills.php';
+    if ( file_exists( $polyfills_path ) ) {
+        define( 'WP_TESTS_PHPUNIT_POLYFILLS_PATH', WP_TESTS_DIR . '/vendor/yoast/phpunit-polyfills/' );
+    }
+}
+
 // Load the WP testing environment.
 require_once WP_TESTS_DIR . '/includes/functions.php';
 
