@@ -20,13 +20,36 @@ WP_CORE_DIR=${WP_CORE_DIR:-/tmp/wordpress}
 set -e
 
 download() {
+  local url
   if [ "latest" == "$1" ]; then
-    local url="https://wordpress.org/latest.tar.gz"
+    url="https://wordpress.org/latest.tar.gz"
   else
-    local url="https://wordpress.org/wordpress-$1.tar.gz"
+    url="https://wordpress.org/wordpress-$1.tar.gz"
   fi
+  
+  echo "Downloading WordPress from: $url"
   curl -sL "$url" -o /tmp/wordpress.tar.gz
-  tar -xzf /tmp/wordpress.tar.gz -C /tmp --strip-components=1
+  
+  # Clean up any existing directory
+  rm -rf "$WP_CORE_DIR"
+  mkdir -p "$WP_CORE_DIR"
+  
+  # Extract to a temp dir first
+  local tmp_extract="/tmp/wp-extract-$$"
+  rm -rf "$tmp_extract"
+  mkdir -p "$tmp_extract"
+  tar -xzf /tmp/wordpress.tar.gz -C "$tmp_extract"
+  
+  # Move contents (should be wordpress/ directory)
+  if [ -d "$tmp_extract/wordpress" ]; then
+    mv "$tmp_extract/wordpress"/* "$WP_CORE_DIR/"
+    mv "$tmp_extract/wordpress"/.* "$WP_CORE_DIR/" 2>/dev/null || true
+  fi
+  
+  rm -rf "$tmp_extract"
+  rm -f /tmp/wordpress.tar.gz
+  
+  echo "WordPress extracted to: $WP_CORE_DIR"
 }
 
 install_db() {
@@ -37,11 +60,7 @@ install_db() {
 
 install_wp() {
   if [ ! -f "$WP_CORE_DIR/wp-includes/version.php" ]; then
-    rm -rf "$WP_CORE_DIR"
-    mkdir -p "$WP_CORE_DIR"
     download "$WP_VERSION"
-    mv /tmp/wordpress/* "$WP_CORE_DIR/"
-    mv /tmp/wordpress/.* "$WP_CORE_DIR/" 2>/dev/null || true
   fi
 
   if [ ! -f "$WP_CORE_DIR/wp-includes/version.php" ]; then
