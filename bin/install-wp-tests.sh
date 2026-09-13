@@ -83,14 +83,16 @@ install_test_suite() {
     mkdir -p "$tmp_extract"
     tar -xzf /tmp/wp-develop.tar.gz -C "$tmp_extract"
     
-    # Find the tests directory
-    local test_suite_src=$(find "$tmp_extract" -type d -name "wordpress-develop-*" | head -1)/tests
+    # Find the tests/phpunit directory
+    local phpunit_src=$(find "$tmp_extract" -type d -name "phpunit" -path "*/tests/phpunit" | head -1)
     
-    if [ -d "$test_suite_src" ]; then
-      echo "Copying test suite files..."
-      cp -r "$test_suite_src"/* "$WP_TESTS_DIR/"
+    if [ -d "$phpunit_src" ]; then
+      echo "Copying test suite files from $phpunit_src..."
+      cp -r "$phpunit_src"/* "$WP_TESTS_DIR/"
     else
-      echo "Failed to find test suite source"
+      echo "Failed to find test suite source at $phpunit_src"
+      ls -la "$tmp_extract"
+      find "$tmp_extract" -type d -name "phpunit" | head -5
       exit 1
     fi
     
