@@ -89,6 +89,14 @@ install_test_suite() {
     if [ -d "$phpunit_src" ]; then
       echo "Copying test suite files from $phpunit_src..."
       cp -r "$phpunit_src"/* "$WP_TESTS_DIR/"
+      
+      # Install PHPUnit Polyfills for WordPress test suite compatibility
+      echo "Installing PHPUnit Polyfills..."
+      cd "$WP_TESTS_DIR"
+      if [ ! -f "vendor/autoload.php" ]; then
+        curl -sS https://getcomposer.org/installer | php -- --quiet
+        php composer.phar require --dev yoast/phpunit-polyfills:^2.0 --no-interaction --quiet 2>/dev/null || true
+      fi
     else
       echo "Failed to find test suite source at $phpunit_src"
       ls -la "$tmp_extract"
