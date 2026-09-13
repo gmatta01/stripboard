@@ -20,14 +20,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['7.4', '8.0', '8.1', '8.2', '8.3']
-        mysql: ['5.7', '8.0']
-        exclude:
-          - php: '7.4'
-            mysql: '8.0'
+        php: ['8.1', '8.2', '8.3', '8.4']
+        mysql: ['8.0']
 
     container:
-      image: php:${{ matrix.php }}
+      image: php:${{ matrix.php }}-cli
 
     services:
       mysql:
@@ -50,12 +47,7 @@ jobs:
       - name: Install system dependencies
         run: |
           apt-get update && apt-get install -y \
-            subversion unzip wget curl git \
-            libxml2-dev libpng-dev libzip-dev libicu-dev
-
-      - name: Setup PHP extensions
-        run: |
-          docker-php-ext-install mysqli intl zip
+            subversion unzip wget curl
 
       - name: Install Composer
         run: |
@@ -65,13 +57,8 @@ jobs:
         run: |
           bash bin/install-wp-tests.sh wordpress_tests root root 127.0.0.1 latest true
 
-      - name: Install PHPUnit (PHP 7.x)
-        if: matrix.php < '8.0'
+      - name: Install PHPUnit
         run: composer global require "phpunit/phpunit:^9.0"
-
-      - name: Install PHPUnit (PHP 8.x)
-        if: matrix.php >= '8.0'
-        run: composer global require "phpunit/phpunit:^10.0"
 
       - name: Run PHP syntax check
         run: find . -type "f" -name "*.php" -not -path "./vendor/*" -not -path "./node_modules/*" | xargs -I {} php -l {}
