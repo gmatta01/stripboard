@@ -58,7 +58,7 @@ jobs:
 
       - name: Install WP test suite
         run: |
-          bash bin/install-wp-tests.sh wordpress_tests root root 127.0.0.1 latest true
+          bash bin/install-wp-tests.sh wordpress_tests root root mysql latest true
 
       - name: Install PHPUnit
         run: composer global require "phpunit/phpunit:^9.0"
